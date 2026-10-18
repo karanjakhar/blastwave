@@ -6,7 +6,7 @@ It's 3 a.m. and `checkout-service` is returning 5xx errors. The cause is a deplo
 
 Blastwave is a team of three local-LLM agents (**triage → investigator → comms**) that use **FalkorDB as their context layer**. They follow dependencies to find the root cause, page the right people, and write what they learned back into the graph so the next incident is faster. Each decision comes with the Cypher that produced it and the subgraph it relied on.
 
-> Demo video: _<add YouTube link>_  ·  Runs fully local: FalkorDB + Qwen3-4B (Ollama or vLLM) on an 8 GB laptop GPU.
+> Demo video: https://youtu.be/1F_YKCy3Lkk  ·  Runs fully local: FalkorDB + Qwen3-4B (Ollama or vLLM) on an 8 GB laptop GPU.
 
 ![Blastwave UI](docs/screenshot.png)
 

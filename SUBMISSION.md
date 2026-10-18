@@ -12,7 +12,7 @@ Blastwave is a team of three local-LLM agents (triage → investigator → comms
 
 **Repository**: https://github.com/karanjakhar/blastwave
 
-**Demo video**: <YouTube link>
+**Demo video**: https://youtu.be/1F_YKCy3Lkk
 
 **Live demo**: (local; complete setup in README: `docker compose up -d falkordb`, `ollama create blastwave-qwen -f Modelfile`, `uvicorn blastwave.server:app`)
 

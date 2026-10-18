@@ -71,4 +71,4 @@ Graph queries take milliseconds, so this costs essentially nothing. A full three
 
 Everything is local: `docker compose up -d falkordb`, `ollama create blastwave-qwen -f Modelfile`, `python -m blastwave.seed`, `uvicorn blastwave.server:app`. Then click **Run triage → investigate → comms** and watch the graph light up from checkout to ledger to the deploy that caused it, and to the person who knows how to fix it.
 
-Repo: https://github.com/karanjakhar/blastwave · Demo: <YouTube link>
+Repo: https://github.com/karanjakhar/blastwave · Demo: https://youtu.be/1F_YKCy3Lkk
