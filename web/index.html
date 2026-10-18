@@ -93,7 +93,7 @@ Doc:'#cbd5e1',Decision:'#f6e05e',Ticket:'#94a3b8',Alert:'#ff2e63',Agent:'#ffffff
 const $=s=>document.querySelector(s);let tenant='acme',showMem=false,cy,currentIncident=null,steps=[];
 let sid=null;try{sid=localStorage.getItem('bw_sid')}catch(e){}
 async function j(u,o){const r=await fetch(u,o);if(!r.ok)throw new Error(await r.text());return r.json()}
-function initCy(){cy=cytoscape({container:$('#cy'),wheelSensitivity:.25,style:[
+function initCy(){cy=cytoscape({container:$('#cy'),wheelSensitivity:.25,maxZoom:1.6,minZoom:.2,style:[
  {selector:'node',style:{'background-color':e=>COLORS[e.data('label')]||'#888','label':'data(key)','color':'#c9cfdd','font-size':9,'text-valign':'bottom','text-margin-y':3,
    'width':e=>e.data('label')==='Service'?(e.data('tier')===1?22:16):10,'height':e=>e.data('label')==='Service'?(e.data('tier')===1?22:16):10,'border-width':0}},
  {selector:'edge',style:{'width':1,'line-color':'#2a3040','target-arrow-color':'#2a3040','target-arrow-shape':'triangle','arrow-scale':.6,'curve-style':'bezier'}},
