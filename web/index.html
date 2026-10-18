@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blastwave</title>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<style>
+:root{--bg:#0b0d12;--panel:#12151d;--panel2:#181c26;--line:#262b38;--fg:#e6e8ee;--muted:#8b93a7;--accent:#8b7cff;--accent2:#ff5fa2;
+--ok:#3ecf8e;--warn:#ffb547;--bad:#ff5d5d;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Inter,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:700;letter-spacing:.3px;font-size:17px}.logo span{color:var(--accent2)}
+.sub{color:var(--muted);font-size:12px}
+header .sp{flex:1}
+select,input,textarea,button{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button{cursor:pointer;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+button:disabled{opacity:.5;cursor:wait}
+main{flex:1;display:grid;grid-template-columns:340px 1fr 440px;min-height:0}
+aside,section{min-height:0;overflow:auto}
+aside{border-right:1px solid var(--line);background:var(--panel);padding:12px}
+#trace{border-left:1px solid var(--line);background:var(--panel);padding:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1;background:transparent;border-color:var(--line);color:var(--muted);font-weight:500}
+.tabs button.on{background:var(--panel2);color:var(--fg);border-color:var(--accent)}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.card h4{margin:0 0 4px;font-size:13px}.k{color:var(--muted);font-size:12px}
+.alert{border-left:3px solid var(--bad)}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+input,textarea,select{width:100%}textarea{min-height:64px;resize:vertical}
+#graphwrap{position:relative;height:100%}#cy{position:absolute;inset:0}
+.legend{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);background:#0b0d12cc;padding:6px 8px;border-radius:8px;max-width:70%}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.gtools{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.step{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--panel2);cursor:pointer}
+.step .hd{display:flex;gap:8px;align-items:center;padding:8px 10px}
+.step .bd{display:none;padding:0 10px 10px}.step.open .bd{display:block}
+.step.sel{border-color:var(--accent)}
+.badge{font-size:10px;padding:2px 6px;border-radius:99px;background:#262b38;color:var(--muted);font-family:var(--mono)}
+.b-triage{background:#3a2a10;color:#ffcf7a}.b-investigator{background:#1d2a45;color:#8fb6ff}.b-comms{background:#163626;color:#7ff0b8}.b-assistant{background:#2d2350;color:#c4b8ff}
+.b-guard{background:#40202a;color:#ff9db8}.b-write{background:#1c3a3a;color:#7fe7e7}
+pre{font-family:var(--mono);font-size:11.5px;background:#0b0d12;border:1px solid var(--line);border-radius:8px;padding:8px;overflow:auto;white-space:pre-wrap;margin:6px 0}
+.say{border-left:3px solid var(--accent);padding:8px 10px;background:#161a24;border-radius:6px;margin:6px 0 12px;white-space:pre-wrap}
+.handoff{color:var(--muted);font-size:12px;text-align:center;margin:10px 0;font-family:var(--mono)}
+.chat .u{color:var(--accent);margin-top:8px;font-weight:600}.chat .a{white-space:pre-wrap;margin-bottom:8px}
+.statebox div{display:flex;gap:6px;margin:2px 0}.statebox b{min-width:110px;color:var(--muted);font-weight:500}
+.empty{color:var(--muted);text-align:center;margin-top:40px}
+@media (max-width:1100px){main{grid-template-columns:1fr}#graphwrap{height:60vh}}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="logo">Blast<span>wave</span></div><div class="sub">On-call agents with FalkorDB as context, memory &amp; shared state</div></div>
+  <div class="sp"></div>
+  <label style="margin:0">tenant graph</label><select id="tenant" style="width:auto"></select>
+  <button class="ghost" id="reset">Reset demo data</button>
+</header>
+<main>
+<aside>
+  <div class="tabs"><button data-t="inc" class="on">Incident</button><button data-t="ask">Ask</button><button data-t="mem">Memory</button></div>
+  <div id="t-inc">
+    <div id="alerts"></div>
+    <div class="card"><h4>Fire a custom alert</h4>
+      <label>service</label><select id="svc"></select>
+      <label>alert</label><input id="title" value="p99 latency 4.2s, error rate 12%">
+      <div style="margin-top:10px"><button id="runCustom">Run agents</button></div></div>
+    <div id="state"></div>
+    <div class="card" id="resolveCard" style="display:none"><h4>Resolve &amp; teach the graph</h4>
+      <div class="k">Turns this incident into procedural memory. The next session will find it.</div>
+      <label>resolved by (handle)</label><input id="resolver" value="dev">
+      <label>what fixed it (one step per line)</label><textarea id="notes">Rolled back ledger-service to v2.13.2
+Set DB_POOL_MAX=50 explicitly in config-service</textarea>
+      <div style="margin-top:10px"><button id="resolve">Resolve incident</button></div><div id="learned" class="k" style="margin-top:8px"></div></div>
+  </div>
+  <div id="t-ask" style="display:none">
+    <div class="card"><div class="k">Conversation history is stored as Episode nodes in the graph — reload the page or come back tomorrow and the session continues.</div>
+      <div class="k" style="margin-top:6px">session: <code id="sid">new</code> <a href="#" id="newSession" style="color:var(--accent)">new session</a></div></div>
+    <div class="chat" id="chat"></div>
+    <textarea id="q" placeholder="e.g. What breaks if payments-db goes down, and who should I call?"></textarea>
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap" id="examples"></div>
+    <div style="margin-top:8px"><button id="askBtn">Ask</button></div>
+  </div>
+  <div id="t-mem" style="display:none"><div id="mem"></div></div>
+</aside>
+<section id="graphwrap"><div id="cy"></div>
+  <div class="gtools"><button class="ghost" id="toggleMem">memory nodes: off</button><button class="ghost" id="fit">fit</button></div>
+  <div class="legend" id="legend"></div></section>
+<section id="trace"><div class="empty">Agent trace appears here.<br>Every step shows the Cypher it ran and the subgraph it used.<br>Click a step to highlight its evidence.</div></section>
+</main>
+<script>
+const COLORS={Service:'#8b7cff',Team:'#ffb547',Person:'#3ecf8e',Deploy:'#ff5fa2',Incident:'#ff5d5d',Procedure:'#4fd1ff',Runbook:'#a0aec0',
+Doc:'#cbd5e1',Decision:'#f6e05e',Ticket:'#94a3b8',Alert:'#ff2e63',Agent:'#ffffff',Session:'#64748b',Episode:'#475569',Fact:'#38bdf8',StatusUpdate:'#64748b'};
+const $=s=>document.querySelector(s);let tenant='acme',showMem=false,cy,currentIncident=null,steps=[];
+let sid=null;try{sid=localStorage.getItem('bw_sid')}catch(e){}
+async function j(u,o){const r=await fetch(u,o);if(!r.ok)throw new Error(await r.text());return r.json()}
+function initCy(){cy=cytoscape({container:$('#cy'),wheelSensitivity:.25,style:[
+ {selector:'node',style:{'background-color':e=>COLORS[e.data('label')]||'#888','label':'data(key)','color':'#c9cfdd','font-size':9,'text-valign':'bottom','text-margin-y':3,
+   'width':e=>e.data('label')==='Service'?(e.data('tier')===1?22:16):10,'height':e=>e.data('label')==='Service'?(e.data('tier')===1?22:16):10,'border-width':0}},
+ {selector:'edge',style:{'width':1,'line-color':'#2a3040','target-arrow-color':'#2a3040','target-arrow-shape':'triangle','arrow-scale':.6,'curve-style':'bezier'}},
+ {selector:'.dim',style:{'opacity':.12}},
+ {selector:'node.hl',style:{'border-width':3,'border-color':'#fff','font-size':12,'color':'#fff','z-index':10}},
+ {selector:'edge.hl',style:{'width':3,'line-color':'#ff5fa2','target-arrow-color':'#ff5fa2','opacity':1,'z-index':9,'label':'data(type)','font-size':8,'color':'#ff9dc6','text-rotation':'autorotate'}},
+ {selector:'edge.virtual',style:{'line-style':'dashed'}}]});
+ cy.on('tap','node',e=>{const n=e.target;cy.elements().removeClass('hl dim');const nb=n.closedNeighborhood();cy.elements().not(nb).addClass('dim');nb.addClass('hl')});
+ cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('hl dim')});
+ $('#legend').innerHTML=Object.entries(COLORS).filter(([k])=>!['Agent','Session','Episode','StatusUpdate'].includes(k)).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join('');}
+async function loadGraph(){const g=await j(`/api/graph?tenant=${tenant}&memory_nodes=${showMem}`);cy.elements().remove();
+ cy.add(g.nodes.map(n=>({data:{id:n.key,...n}})));cy.add(g.edges.filter(e=>cy.getElementById(e.src).length&&cy.getElementById(e.dst).length).map((e,i)=>({data:{id:`e${i}`,source:e.src,target:e.dst,type:e.type}})));
+ cy.layout({name:'cose',animate:false,nodeRepulsion:9000,idealEdgeLength:70,gravity:.35,randomize:true}).run();}
+function highlight(nodes,edges){cy.elements().removeClass('hl dim');cy.remove('.virtual');if(!nodes.length&&!edges.length)return;let col=cy.collection();
+ nodes.forEach(k=>{const n=cy.getElementById(k);if(n.length)col=col.union(n)});
+ edges.forEach(([s,t,d],i)=>{const a=cy.getElementById(s),b=cy.getElementById(d);if(!a.length||!b.length)return;col=col.union(a).union(b);
+  let e=a.edgesTo(b).filter(x=>x.data('type')===t);if(!e.length)e=b.edgesTo(a).filter(x=>x.data('type')===t);
+  if(!e.length){e=cy.add({data:{id:`v${Date.now()}${i}`,source:s,target:d,type:t},classes:'virtual'})}col=col.union(e)});
+ cy.elements().not(col).addClass('dim');col.addClass('hl');cy.animate({fit:{eles:col,padding:90},duration:350});}
+async function loadSide(){const [alerts,svcs]=await Promise.all([j(`/api/alerts?tenant=${tenant}`),j(`/api/services?tenant=${tenant}`)]);
+ $('#svc').innerHTML=svcs.map(s=>`<option>${s}</option>`).join('');
+ $('#alerts').innerHTML=alerts.map(a=>`<div class="card alert"><h4>🔥 ${a.title}</h4><div class="k">${a.id} · on <b>${a.service}</b> · ${a.status}</div>
+  <div style="margin-top:8px"><button onclick='runIncident(${JSON.stringify(a.service)},${JSON.stringify(a.title)},${JSON.stringify(a.id)})'>Run triage → investigate → comms</button></div></div>`).join('')||'<div class="k">No firing alerts in this tenant.</div>';
+ const ex=['What breaks if payments-db goes down?','Who knows ledger-service best, and why?','Why must the ledger pool be ≥ 50? Show sources.','Which services are single points of failure?'];
+ $('#examples').innerHTML=ex.map(e=>`<button class="ghost" style="font-size:11px;padding:4px 8px">${e}</button>`).join('');
+ document.querySelectorAll('#examples button').forEach(b=>b.onclick=()=>{$('#q').value=b.textContent});}
+function esc(s){return String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function traceReset(){$('#trace').innerHTML='';steps=[]}
+function addStep(ev){const i=steps.length;steps.push(ev);const div=document.createElement('div');div.className='step';
+ const w=['update_incident','page','post_status','remember'].includes(ev.tool);
+ div.innerHTML=`<div class="hd"><span class="badge b-${ev.agent}">${ev.agent}</span><b style="font-family:var(--mono);font-size:12.5px">${ev.tool}</b>
+ ${ev.guardrail?'<span class="badge b-guard" title="Model skipped this required check; guardrail ran it">guardrail</span>':''}${w?'<span class="badge b-write">writes graph</span>':''}
+ <span class="sp" style="flex:1"></span><span class="k">${ev.rows.length} rows</span></div>
+ <div class="bd"><div class="k">args</div><pre>${esc(JSON.stringify(ev.args))}</pre><div class="k">cypher</div>${ev.cypher.map(c=>`<pre>${esc(c)}</pre>`).join('')}
+ <div class="k">result</div><pre>${esc(JSON.stringify(ev.rows.slice(0,8),null,1))}${ev.rows.length>8?'\n…':''}</pre></div>`;
+ div.onclick=()=>{document.querySelectorAll('.step').forEach(s=>s.classList.remove('sel'));div.classList.add('sel');div.classList.toggle('open');highlight(ev.nodes,ev.edges)};
+ $('#trace').appendChild(div);highlight(ev.nodes,ev.edges);div.scrollIntoView({block:'nearest'});}
+function addHtml(h){const d=document.createElement('div');d.innerHTML=h;$('#trace').appendChild(d);d.scrollIntoView({block:'nearest'})}
+async function stream(url,body,onEv){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const rd=r.body.getReader(),dec=new TextDecoder();let buf='';while(true){const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+ let p;while((p=buf.indexOf('\n\n'))>=0){const line=buf.slice(0,p);buf=buf.slice(p+2);if(line.startsWith('data: '))onEv(JSON.parse(line.slice(6)))}}}
+function common(ev){if(ev.type==='tool')addStep(ev);else if(ev.type==='agent_start')addHtml(`<div class="k" style="margin:12px 0 6px">▶ <span class="badge b-${ev.agent}">${ev.agent}</span> agent started</div>`);
+ else if(ev.type==='agent_end')addHtml(`<div class="say">${esc(ev.text)}</div>`);
+ else if(ev.type==='handoff')addHtml(`<div class="handoff">── ${ev.from} → ${ev.to} · HANDED_OFF edge written · state lives on ${ev.incident} ──</div>`);
+ else if(ev.type==='tool_error')addHtml(`<div class="k" style="color:var(--bad)">${ev.agent}: ${ev.tool} error: ${esc(ev.error)}</div>`);
+ else if(ev.type==='llm_error')addHtml(`<div class="k" style="color:var(--warn)">LLM error (${ev.agent}): ${esc(ev.error)} — falling back to graph guardrails</div>`);
+ else if(ev.type==='error')addHtml(`<div class="k" style="color:var(--bad)">${esc(ev.error)}</div>`);}
+function renderState(st){if(!st)return;$('#state').innerHTML=`<div class="card statebox"><h4>Shared incident state (graph)</h4>
+ ${[['incident',st.incident],['severity',st.severity],['impact',st.impact],['suspected deploy',st.suspected_deploy],['hypothesis',st.hypothesis],['paged',(st.paged||[]).map(h=>'@'+h).join(', ')]].map(([k,v])=>`<div><b>${k}</b><span>${esc(v||'—')}</span></div>`).join('')}</div>`;}
+async function runIncident(service,title,alert_id){document.querySelectorAll('aside button').forEach(b=>b.disabled=true);traceReset();$('#learned').textContent='';
+ if(showMem){}await loadGraph();
+ try{await stream('/api/incident',{tenant,service,title,alert_id},ev=>{common(ev);
+  if(ev.type==='session'){currentIncident=ev.incident;addHtml(`<div class="card"><b>${ev.incident}</b> opened · session ${ev.session}<div class="k">${esc(ev.title)}</div></div>`)}
+  if(ev.type==='done'){renderState(ev.state);$('#resolveCard').style.display='block';const s=ev.state;
+   const nodes=[s.incident,...(s.affected||[]),s.suspected_deploy,s.suspected_service,...(s.paged||[])].filter(Boolean);
+   addHtml(`<div class="card" style="border-color:var(--ok)"><b>Done.</b> Click any step to replay its evidence on the graph.</div>`);loadGraph().then(()=>highlight(nodes,[]))}})}
+ finally{document.querySelectorAll('aside button').forEach(b=>b.disabled=false)}}
+$('#runCustom').onclick=()=>runIncident($('#svc').value,`${$('#svc').value}: ${$('#title').value}`,null);
+$('#resolve').onclick=async()=>{if(!currentIncident)return;const r=await j('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({tenant,incident_id:currentIncident,resolver:$('#resolver').value,notes:$('#notes').value})});
+ $('#learned').innerHTML=`✅ ${esc(r.learned)}. Fire another alert upstream of <b>${esc(r.target)}</b> — the investigator will recall it.`;loadMem()};
+function setSid(s){sid=s;try{s?localStorage.setItem('bw_sid',s):localStorage.removeItem('bw_sid')}catch(e){};$('#sid').textContent=s||'new'}
+$('#newSession').onclick=e=>{e.preventDefault();setSid(null);$('#chat').innerHTML=''};
+$('#askBtn').onclick=async()=>{const q=$('#q').value.trim();if(!q)return;$('#askBtn').disabled=true;traceReset();
+ $('#chat').insertAdjacentHTML('beforeend',`<div class="u">you</div><div>${esc(q)}</div>`);$('#q').value='';
+ try{await stream('/api/ask',{tenant,question:q,session_id:sid},ev=>{common(ev);if(ev.type==='session'){setSid(ev.session);if(ev.history_turns)addHtml(`<div class="k">↺ loaded ${ev.history_turns} prior turns of this session from the graph</div>`);
+   if(ev.entities&&ev.entities.length){addHtml(`<div class="k">🔗 entity linker → ${ev.entities.map(e=>`<b>${esc(e.name)}</b> (${e.label})`).join(', ')}</div>`);highlight(ev.entities.map(e=>e.name),[])}}
+  if(ev.type==='agent_end')$('#chat').insertAdjacentHTML('beforeend',`<div class="u">blastwave</div><div class="a">${esc(ev.text)}</div>`)})}
+ finally{$('#askBtn').disabled=false}};
+async function loadMem(){const m=await j(`/api/memory?tenant=${tenant}`);
+ $('#mem').innerHTML=`<div class="card"><h4>Procedural memory</h4>${m.procedures.map(p=>`<div style="margin:6px 0"><b>${p.id}</b> ${esc(p.title)} <span class="badge">${p.learned_by}</span> <span class="badge">uses ${p.uses}</span>
+ <div class="k">fixes ${p.fixes} · from ${p.from_incidents.join(', ')}</div><div class="k">${(p.steps||[]).map(esc).join(' → ')}</div></div>`).join('')}</div>
+ <div class="card"><h4>Agent handoffs</h4>${m.handoffs.map(h=>`<div class="k">${h.src} → ${h.dst} · ${h.incident}</div>`).join('')||'<div class="k">none yet</div>'}</div>
+ <div class="card"><h4>Semantic facts</h4>${m.facts.map(f=>`<div class="k"><b>${esc(f.about)}</b>: ${esc(f.text)}</div>`).join('')||'<div class="k">none yet — tell the Ask agent something</div>'}</div>
+ <div class="card"><h4>Sessions (episodic)</h4>${m.sessions.map(s=>`<div class="k">${s.id} · ${s.kind} · ${s.episodes} episodes</div>`).join('')||'<div class="k">none yet</div>'}</div>`}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ ['inc','ask','mem'].forEach(t=>$('#t-'+t).style.display=t===b.dataset.t?'block':'none');if(b.dataset.t==='mem')loadMem()});
+$('#toggleMem').onclick=()=>{showMem=!showMem;$('#toggleMem').textContent='memory nodes: '+(showMem?'on':'off');loadGraph()};
+$('#fit').onclick=()=>cy.fit();
+$('#reset').onclick=async()=>{$('#reset').disabled=true;await j('/api/reset',{method:'POST'});$('#reset').disabled=false;traceReset();$('#state').innerHTML='';$('#resolveCard').style.display='none';await loadGraph();loadSide()};
+$('#tenant').onchange=async e=>{tenant=e.target.value;await loadGraph();loadSide();traceReset()};
+(async()=>{initCy();const ts=await j('/api/tenants');$('#tenant').innerHTML=ts.map(t=>`<option ${t==='acme'?'selected':''}>${t}</option>`).join('');setSid(sid);await loadGraph();loadSide()})();
+</script>
+</body>
+</html>

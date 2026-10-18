@@ -1,0 +1,61 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6379:6379"   # Redis protocol / Cypher
+      - "3000:3000"   # FalkorDB Browser
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  vllm:
+    image: vllm/vllm-openai:v0.30.0
+    profiles: ["llm"]   # `docker compose --profile llm up` — skip if you point LLM_BASE_URL elsewhere
+    ipc: host
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    command: >
+      --model ${VLLM_MODEL:-RedHatAI/Qwen3.5-4B-quantized.w4a16}
+      --served-model-name local
+      --max-model-len 12288
+      --gpu-memory-utilization 0.80
+      --limit-mm-per-prompt '{"image":0,"video":0}'
+      --max-num-seqs 4
+      --enforce-eager
+      --enable-auto-tool-choice
+      --tool-call-parser ${TOOL_PARSER:-hermes}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  app:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
+      # Default: Ollama on the host. With `--profile llm` use http://vllm:8000/v1 and LLM_MODEL=local.
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      - LLM_MODEL=${LLM_MODEL:-blastwave-qwen}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["sh", "-c", "python -m blastwave.seed && uvicorn blastwave.server:app --host 0.0.0.0 --port 8080"]
+
+volumes:
+  falkordb-data:

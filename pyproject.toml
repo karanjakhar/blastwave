@@ -1,0 +1,23 @@
+[project]
+name = "blastwave"
+version = "0.1.0"
+description = "On-call copilot agents with FalkorDB as the context layer"
+requires-python = ">=3.11"
+dependencies = [
+  "falkordb>=1.0.10",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "openai>=1.50",
+  "mcp>=1.2,<2",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["blastwave"]

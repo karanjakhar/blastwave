@@ -1,0 +1,5 @@
+# Ollama wrapper: Qwen3-4B-Instruct-2507 with a context window big enough for multi-step tool loops.
+#   ollama create blastwave-qwen -f Modelfile
+FROM qwen3:4b-instruct-2507-q4_K_M
+PARAMETER num_ctx 16384
+PARAMETER temperature 0.2
