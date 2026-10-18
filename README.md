@@ -191,7 +191,7 @@ MERGE (e)-[:MENTIONS]->(x)
 Requirements: Docker, Python 3.11+ ([uv](https://docs.astral.sh/uv/) recommended), and a local OpenAI-compatible LLM. Ollama is the easiest option.
 
 ```bash
-git clone https://github.com/<you>/blastwave && cd blastwave
+git clone https://github.com/karanjakhar/blastwave && cd blastwave
 
 # 1. FalkorDB (+ Browser on http://localhost:3000)
 docker compose up -d falkordb

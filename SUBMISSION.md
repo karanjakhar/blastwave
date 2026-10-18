@@ -10,7 +10,7 @@ Blastwave is a team of three local-LLM agents (triage → investigator → comms
 
 **Tracks**: ☑ Agents That Act on Connected Data ☑ Agent Memory and Coordination ☑ Company Brain
 
-**Repository**: https://github.com/<you>/blastwave
+**Repository**: https://github.com/karanjakhar/blastwave
 
 **Demo video**: <YouTube link>
 

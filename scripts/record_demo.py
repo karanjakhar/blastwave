@@ -95,7 +95,7 @@ async def main(out_dir: str, chrome: str | None):
         await pg.select_option("#tenant", "acme")
         await pg.wait_for_timeout(1500)
         await cap("Runs fully local: FalkorDB + Qwen3-4B on an 8 GB laptop GPU · same 19 tools exposed over MCP", 4)
-        await cap("<b>Blastwave</b> · graph-shaped decisions you can trace · github.com/… ", 3)
+        await cap("<b>Blastwave</b> · graph-shaped decisions you can trace · github.com/karanjakhar/blastwave ", 3)
         await ctx.close()
         await b.close()
 
